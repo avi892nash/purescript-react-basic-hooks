@@ -78,7 +78,7 @@ import Unsafe.Reference (unsafeRefEq)
 
 --| A simple type alias to clean up component definitions.
 type Component props
-  = Effect (props -> JSX)
+  = (props -> JSX)
 
 --| Create a component function given a display name and render function.
 --| Creating components is effectful because React uses the function
@@ -91,8 +91,8 @@ component ::
   (props -> Render Unit hooks JSX) ->
   Component props
 component name renderFn = Prelude.do
-  c <- reactComponent name (renderFn <<< _.nested)
-  pure (element c <<< { nested: _ })
+  let c = reactComponent name (renderFn <<< _.nested)
+  element c <<< { nested: _ }
 
 --| Create a React component given a display name and render function.
 --| Creating components is effectful because React uses the function
@@ -107,7 +107,7 @@ reactComponent ::
   Lacks "ref" props =>
   String ->
   ({ | props } -> Render Unit hooks JSX) ->
-  Effect (ReactComponent { | props })
+  ReactComponent { | props }
 reactComponent = unsafeReactComponent
 
 --| Create a React component given a display name and render function.
@@ -119,7 +119,7 @@ reactComponentWithChildren ::
   Lacks "ref" props =>
   String ->
   ({ children :: ReactChildren children | props } -> Render Unit hooks JSX) ->
-  Effect (ReactComponent { children :: ReactChildren children | props })
+  ReactComponent { children :: ReactChildren children | props }
 reactComponentWithChildren = unsafeReactComponent
 
 --| Convert a hook to a render-prop component. The value returned from the
@@ -134,7 +134,7 @@ reactComponentFromHook ::
   Lacks "ref" props =>
   String ->
   ({ render :: r -> JSX | props } -> Hook hooks r) ->
-  Effect (ReactComponent { render :: r -> JSX | props })
+  ReactComponent { render :: r -> JSX | props }
 reactComponentFromHook name propsToHook = do
   reactComponent name \props -> map props.render $ propsToHook props
 
@@ -144,7 +144,7 @@ unsafeReactComponent ::
   Lacks "ref" props =>
   String ->
   ({ | props } -> Render Unit hooks JSX) ->
-  Effect (ReactComponent { | props })
+  ReactComponent { | props }
 unsafeReactComponent name renderFn =
   let
     c =
@@ -155,7 +155,7 @@ unsafeReactComponent name renderFn =
             )
         )
   in
-    runEffectFn2 unsafeSetDisplayName name c
+    runFn2 unsafeSetDisplayName name c
 
 unsafeDiscardRenderEffects :: forall x y a. Render x y a -> Effect a
 unsafeDiscardRenderEffects = unsafeCoerce
@@ -455,7 +455,7 @@ foreign import memoEq_ ::
 
 foreign import unsafeSetDisplayName ::
   forall props.
-  EffectFn2 String (ReactComponent props) (ReactComponent props)
+  Fn2 String (ReactComponent props) (ReactComponent props)
 
 foreign import useState_ ::
   forall state.
